@@ -6,7 +6,6 @@ import { Loader } from "lucide-react";
 const AllUsers = () => {
   const {
     data: creators,
-    isLoading: isUserLoading,
     isLoading,
     isError: isErrorCreators,
   } = useGetUsers(10);
