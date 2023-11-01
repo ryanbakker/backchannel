@@ -1,21 +1,31 @@
-import Loader from "@/components/shared/Loader";
-import PostStats from "@/components/shared/PostStats";
-import { Button } from "@/components/ui/button";
+import { useParams, Link, useNavigate } from "react-router-dom";
+
+import { multiFormatDateString } from "@/lib/utils";
 import { useUserContext } from "@/context/AuthContext";
 import {
   useDeletePost,
   useGetPostById,
+  useGetUserPosts,
 } from "@/lib/react-query/queriesAndMutations";
-import { multiFormatDateString } from "@/lib/utils";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import Loader from "@/components/shared/Loader";
+import PostStats from "@/components/shared/PostStats";
+import GridPostList from "@/components/shared/GridPostList";
 
 const PostDetails = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { data: post, isPending } = useGetPostById(id || "");
   const { user } = useUserContext();
 
+  const { data: post, isLoading } = useGetPostById(id || "");
+  const { data: userPosts, isLoading: isUserPostLoading } = useGetUserPosts(
+    post?.creator.$id
+  );
   const { mutate: deletePost } = useDeletePost();
+
+  const relatedPosts = userPosts?.documents.filter(
+    (userPost) => userPost.$id !== id
+  );
 
   const handleDeletePost = () => {
     deletePost({ postId: id, imageId: post?.imageId });
@@ -24,11 +34,31 @@ const PostDetails = () => {
 
   return (
     <div className="post_details-container">
-      {isPending ? (
+      <div className="hidden md:flex max-w-5xl w-full">
+        <Button
+          onClick={() => navigate(-1)}
+          variant="ghost"
+          className="shad-button_ghost !bg-dark-4 !gap-2"
+        >
+          <img
+            src={"/assets/icons/back.svg"}
+            alt="back"
+            width={24}
+            height={24}
+          />
+          <p className="small-medium lg:base-medium">Back</p>
+        </Button>
+      </div>
+
+      {isLoading || !post ? (
         <Loader />
       ) : (
         <div className="post_details-card">
-          <img src={post?.imageUrl} alt="post" className="post_details-img" />
+          <img
+            src={post?.imageUrl}
+            alt="creator"
+            className="post_details-img"
+          />
 
           <div className="post_details-info">
             <div className="flex-between w-full">
@@ -38,24 +68,21 @@ const PostDetails = () => {
               >
                 <img
                   src={
-                    post?.creator?.imageUrl ||
+                    post?.creator.imageUrl ||
                     "/assets/icons/profile-placeholder.svg"
                   }
                   alt="creator"
-                  className="rounded-full w-9 h-9 lg:w-12 lg:h-12"
+                  className="w-8 h-8 lg:w-12 lg:h-12 rounded-full"
                 />
-
-                <div className="flex flex-col">
-                  <Link to={`/profile/${post?.creator.$id}`}>
-                    <p className="base-medium lg:body-bold text-light-1">
-                      {post?.creator.name}
-                    </p>
-                  </Link>
+                <div className="flex gap-1 flex-col">
+                  <p className="base-medium lg:body-bold text-light-1">
+                    {post?.creator.name}
+                  </p>
                   <div className="flex-center gap-2 text-light-3">
-                    <p className="subtle-semibold lg:small-regular">
+                    <p className="subtle-semibold lg:small-regular ">
                       {multiFormatDateString(post?.$createdAt)}
                     </p>
-                    -
+                    •
                     <p className="subtle-semibold lg:small-regular">
                       {post?.location}
                     </p>
@@ -63,13 +90,13 @@ const PostDetails = () => {
                 </div>
               </Link>
 
-              <div className="flex-center">
+              <div className="flex-center gap-4">
                 <Link
                   to={`/update-post/${post?.$id}`}
                   className={`${user.id !== post?.creator.$id && "hidden"}`}
                 >
                   <img
-                    src="/assets/icons/edit.svg"
+                    src={"/assets/icons/edit.svg"}
                     alt="edit"
                     width={24}
                     height={24}
@@ -79,12 +106,12 @@ const PostDetails = () => {
                 <Button
                   onClick={handleDeletePost}
                   variant="ghost"
-                  className={`ghost_details-delete_btn ${
+                  className={`ost_details-delete_btn ${
                     user.id !== post?.creator.$id && "hidden"
                   }`}
                 >
                   <img
-                    src="/assets/icons/delete.svg"
+                    src={"/assets/icons/delete.svg"}
                     alt="delete"
                     width={24}
                     height={24}
@@ -93,13 +120,16 @@ const PostDetails = () => {
               </div>
             </div>
 
-            <hr className="border-1/2 w-full border-dark-4/80" />
+            <hr className="border w-full border-dark-4/80" />
 
             <div className="flex flex-col flex-1 w-full small-medium lg:base-regular">
               <p>{post?.caption}</p>
               <ul className="flex gap-1 mt-2">
-                {post?.tags.map((tag: string) => (
-                  <li key={tag} className="text-light-3">
+                {post?.tags.map((tag: string, index: string) => (
+                  <li
+                    key={`${tag}${index}`}
+                    className="text-light-3 small-regular"
+                  >
                     #{tag}
                   </li>
                 ))}
@@ -112,6 +142,19 @@ const PostDetails = () => {
           </div>
         </div>
       )}
+
+      <div className="w-full max-w-5xl">
+        <hr className="border w-full border-dark-4/80" />
+
+        <h3 className="body-bold md:h3-bold w-full my-10">
+          More Related Posts
+        </h3>
+        {isUserPostLoading || !relatedPosts ? (
+          <Loader />
+        ) : (
+          <GridPostList posts={relatedPosts} />
+        )}
+      </div>
     </div>
   );
 };
