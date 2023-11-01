@@ -28,8 +28,10 @@ const PostDetails = () => {
   );
 
   const handleDeletePost = () => {
-    deletePost({ postId: id, imageId: post?.imageId });
-    navigate(-1);
+    if (post) {
+      deletePost({ postId: post.id, imageId: post.imageId });
+      navigate(-1);
+    }
   };
 
   return (
