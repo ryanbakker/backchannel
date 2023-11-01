@@ -190,10 +190,11 @@ export const useGetPosts = () => {
     getNextPageParam: (lastPage) => {
       if (lastPage && lastPage.documents.length === 0) return null;
 
-      const lastId = lastPage.documents[lastPage.documents.length - 1].$id;
+      const lastId = lastPage?.documents[lastPage.documents.length - 1]?.$id;
 
-      return lastId;
+      return lastId ? Number(lastId) : null;
     },
+    initialPageParam: 1, // or whatever initial value you want to use
   });
 };
 
