@@ -24,6 +24,7 @@ import { useUserContext } from "@/context/AuthContext";
 import { useToast } from "../ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import Loader from "../shared/Loader";
+import { useState } from "react";
 
 type PostFormProps = {
   post?: Models.Document;
@@ -39,6 +40,10 @@ const PostForm = ({ post, action }: PostFormProps) => {
   const { user } = useUserContext();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const [characterCount, setCharacterCount] = useState(0);
+  const maxCharacters = 2200;
+  const characterLimitThreshold = 1900;
 
   const form = useForm<z.infer<typeof PostValidation>>({
     resolver: zodResolver(PostValidation),
@@ -82,6 +87,10 @@ const PostForm = ({ post, action }: PostFormProps) => {
     navigate("/");
   }
 
+  function cancelForm() {
+    navigate("/");
+  }
+
   return (
     <Form {...form}>
       <form
@@ -96,11 +105,26 @@ const PostForm = ({ post, action }: PostFormProps) => {
               <FormLabel className="shad-form_label">Caption</FormLabel>
               <FormControl>
                 <Textarea
-                  className="shad-textarea custom-scrollbar"
+                  className="shad-textarea custom-scrollbar !bg-dark-4 resize-none"
                   {...field}
+                  value={field.value || ""}
+                  maxLength={maxCharacters}
+                  onChange={(e) => {
+                    const inputText = e.target.value;
+                    setCharacterCount(inputText.length);
+                    field.onChange(e);
+                  }}
                 />
               </FormControl>
-              <FormMessage className="shad-form_message" />
+              <FormMessage
+                className={`font-light ${
+                  characterCount > characterLimitThreshold
+                    ? " text-red opacity-100"
+                    : "opacity-30"
+                }`}
+              >
+                {`${characterCount} / ${maxCharacters} characters used`}
+              </FormMessage>
             </FormItem>
           )}
         />
@@ -158,7 +182,11 @@ const PostForm = ({ post, action }: PostFormProps) => {
         />
 
         <div className="flex gap-4 items-center justify-end">
-          <Button type="button" className="shad-button_dark_4">
+          <Button
+            type="button"
+            className="shad-button_dark_4 max-h-10"
+            onClick={cancelForm}
+          >
             Cancel
           </Button>
           <Button
@@ -166,8 +194,7 @@ const PostForm = ({ post, action }: PostFormProps) => {
             className="shad-button_primary whitespace-nowrap"
             disabled={isLoadingCreate || isLoadingUpdate}
           >
-            {isLoadingCreate || (isLoadingUpdate && <Loader />)}
-            {action} Post
+            {isLoadingCreate || isLoadingUpdate ? <Loader /> : `${action} Post`}
           </Button>
         </div>
       </form>
